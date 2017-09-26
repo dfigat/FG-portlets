@@ -1,0 +1,3 @@
+Bundle-SymbolicName: galaxy.portlet
+Bundle-Version: 1.0.0
+Include-Resource: @lib/gson-2.6.2.jar

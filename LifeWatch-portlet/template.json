@@ -1,0 +1,94 @@
+{
+  "version_of_portlet_description": 0.2,
+  "tabs": [
+    "Input Parameters",
+    "Output Parameters",
+    "D3D Input"
+  ],
+  "parameters": [
+    {
+      "tab": 0,
+      "value": "token",
+      "type": "text",
+      "name": "input_onedata_token",
+      "display": "Input Onedata Token"
+    },
+    {
+      "tab": 1,
+      "value": "token",
+      "type": "text",
+      "name": "output_onedata_token",
+      "display": "Output Onedata Token"
+    },
+    {
+      "tab": 0,
+      "value": "AlgaeBloom",
+      "type": "text",
+      "name": "input_onedata_space",
+      "display": "Input Onedata Space"
+    },
+    {
+      "tab": 1,
+      "value": "AlgaeBloom",
+      "type": "text",
+      "name": "output_onedata_space",
+      "display": "Output Onedata Space"
+    },
+    {
+      "tab": 0,
+      "value": "cdmi-indigo.recas.ba.infn.it",
+      "type": "text",
+      "name": "input_onedata_providers",
+      "display": "Input Onedata Providers"
+    },
+    {
+      "tab": 1,
+      "value": "cdmi-indigo.recas.ba.infn.it",
+      "type": "text",
+      "name": "output_onedata_providers",
+      "display": "Output Onedata Providers"
+    },
+    {
+      "tab": 0,
+      "value": "input",
+      "type": "text",
+      "name": "input_path",
+      "display": "Input Path"
+    },
+    {
+      "tab": 1,
+      "value": "output",
+      "type": "text",
+      "name": "output_path",
+      "display": "Output Path"
+    },
+    {
+      "tab": 0,
+      "value": "com-tut_fti_waq.inp",
+      "type": "text",
+      "name": "input_config_file",
+      "display": "Input Config File"
+    },
+    {
+      "tab": 1,
+      "value": "output.tgz",
+      "type": "text",
+      "name": "output_filenames",
+      "display": "Output Filenames"
+    },
+    {
+      "tab": 2,
+      "value": "",
+      "type": "text",
+      "name": "d3d_param",
+      "display": "D3D Param"
+    },
+    {
+      "tab": 2,
+      "value": "",
+      "type": "text",
+      "name": "d3d_value",
+      "display": "D3D Value"
+    }
+  ]
+}

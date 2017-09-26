@@ -1,0 +1,181 @@
+diff --git a/src/main/java/it/infn/ct/indigo/portlet/LifeWatchPortlet.java b/src/main/java/it/infn/ct/indigo/portlet/LifeWatchPortlet.java
+index c3d6a8b..e942ed2 100644
+--- a/src/main/java/it/infn/ct/indigo/portlet/LifeWatchPortlet.java
++++ b/src/main/java/it/infn/ct/indigo/portlet/LifeWatchPortlet.java
+@@ -6,10 +6,12 @@ import com.liferay.portal.kernel.exception.SystemException;
+ import com.liferay.portal.kernel.util.ParamUtil;
+ import org.osgi.service.component.annotations.Component;
+ import java.text.SimpleDateFormat;
++import java.text.NumberFormat;
+ import java.io.IOException;
+ import java.util.Date;
+ import java.util.ArrayList;
+ import java.util.List;
++import java.util.regex.Matcher;
+ import javax.portlet.*;
+ import java.io.BufferedReader;
+ import java.io.FileReader;
+@@ -39,17 +41,45 @@ import java.io.PrintWriter;
+ 	},
+ 	service = Portlet.class
+ )
+-//@Controller("galaxyPortlet")
+-//@RequestMapping(value = "VIEW")
+ public class LifeWatchPortlet extends MVCPortlet {
+     final private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss,SSS");
+-
++    final private String basicPath = "/home/futuregateway/FutureGateway/fgAPIServer/apps/toscaOnecloudTest/";
++    private final static double EPSILON = 1e-6;
++    
+     private String logEvent(String text) {
+         String log = sdf.format(new Date()) + " " + text;
+         System.out.println(log);
+         return log;
+     }
+ 
++    private double roundMe(double val) {
++        int precision = 1000;
++        val = val*precision;
++        val = (double)((int) val);
++        val = val/precision;
++        return val;
++    }
++
++    private int countRange(double first, double last, double step) {
++        int range;   
++        if(step == 0) {
++            return 1;
++        }
++        else {       
++            range = (int)Math.round((last - first)/step);
++            range = Math.abs(range);        
++            range += 1;
++        }
++        if((first < last) && (step > 0)) {
++            return range;
++        }
++        if((first > last) && (step < 0)) {
++            return range;
++        }
++        return 1;
++    }
++
++
+     public void randomNumber(ActionRequest request, ActionResponse renderResponse){
+         logEvent("# randomNumber()");
+         Random generator = new Random();
+@@ -64,11 +94,66 @@ public class LifeWatchPortlet extends MVCPortlet {
+         try {
+             String ans = ParamUtil.getString(resourceRequest, "json");
+             JsonObject jsonObject = new Gson().fromJson(ans, JsonObject.class);
+-
+             Gson gson = new GsonBuilder().setPrettyPrinting().create();
+             String out = gson.toJson(jsonObject);
+-
+             createParamFile(out);
++            
++            double step = 1;
++            double first = 0;
++            double last = 0;
++            try { 
++                String obj = jsonObject
++                    .getAsJsonObject("parameters")
++                    .get("d3d_value")
++                    .toString();
++                obj = obj.replaceAll("\"","");
++                String words[] = obj.split(":");
++                if(words.length == 1) {
++                    first = Double.parseDouble(words[0]);
++                    last = first;
++                    step = last;
++                }
++                if(words.length == 3) {
++                    first = Double.parseDouble(words[0]);
++                    step = Double.parseDouble(words[1]);
++                    last = Double.parseDouble(words[2]);
++                }
++            } 
++            catch(Exception ex) {
++                first = 0;
++                last = first;
++                step = last;
++            }
++            first = roundMe(first);
++            step = roundMe(step);
++            last = roundMe(last);
++
++            /*
++            if(step < 0) {
++                step = Math.abs(step);
++            }
++            if(first > last) {
++                last = first;
++            }*/
++            String job = readFile(basicPath + "template/template-job");
++            String tosca = readFile(basicPath + "template/template-tosca");
++            String jobs = "";
++            int range = countRange(first, last, step);
++            NumberFormat nf = NumberFormat.getInstance();
++            nf.setMaximumFractionDigits(3);
++            for(int i=1; i<=range; i++) {
++                jobs += job
++                    .replaceFirst("<JOB-ID>", Integer.toString(i))
++                    .replaceFirst("<D3D-VALUE>", nf.format(first +EPSILON))
++                    .replaceFirst("<MODEL-ID>", Integer.toString(i));
++                first += step;
++                if(i >= 21) {
++                    break;
++                }
++            }
++
++            String yaml = tosca.replaceFirst("<CHRONOS_JOBS>", Matcher.quoteReplacement(jobs));
++            createYamlFile(yaml);
+         }
+         catch(Exception e) {
+             e.printStackTrace(System.out);
+@@ -76,12 +161,20 @@ public class LifeWatchPortlet extends MVCPortlet {
+         super.serveResource(resourceRequest, resourceResponse);
+     }
+     
++    public void createYamlFile(String content) {
++        createFile(content, basicPath + "tosca_template.yaml");
++    }
++
+     public void createParamFile(String json) {
+-        File file = new File("/home/futuregateway/FutureGateway/fgAPIServer/apps/toscaOnecloudTest/parameters.json");
++        createFile(json, basicPath + "parameters.json");
++    }
++
++    private void createFile(String content, String filePath) {
++        File file = new File(filePath);
+         PrintWriter printWriter = null;
+         try {
+             printWriter = new PrintWriter(file);
+-            printWriter.print(json);
++            printWriter.print(content);
+         }
+         catch (Exception e) {
+             e.printStackTrace();
+@@ -111,8 +204,7 @@ public class LifeWatchPortlet extends MVCPortlet {
+     private String readJsonFile(String pathToFile) {
+         String json = readFile(pathToFile);
+         if(json == null) {
+-            //json = "{\n  \"parameters\": [\n    {\n      \"display\": \"Input Onedata Token\",\n      \"name\": \"input_onedata_token\",\n      \"type\": \"text\",\n      \"value\": \"token\"\n    },\n    {\n      \"display\": \"Output Onedata Token\",\n      \"name\": \"output_onedata_token\",\n      \"type\": \"text\",\n      \"value\": \"token\"\n    },\n    {\n      \"display\": \"Input Onedata Space\",\n      \"name\": \"input_onedata_space\",\n      \"type\": \"text\",\n      \"value\": \"input_space\"\n    },\n    {\n      \"display\": \"Output Onedata Space\",\n      \"name\": \"output_onedata_space\",\n      \"type\": \"text\",\n      \"value\": \"output_space\"\n    },\n    {\n      \"display\": \"Input Onedata Providers\",\n      \"name\": \"input_onedata_providers\",\n      \"type\": \"text\",\n      \"value\": \"cdmi-indigo.recas.ba.infn.it\"\n    },\n    {\n      \"display\": \"Output Onedata Providers\",\n      \"name\": \"output_onedata_providers\",\n      \"type\": \"text\",\n      \"value\": \"cdmi-indigo.recas.ba.infn.it\"\n    },\n    {\n      \"display\": \"Input Path\",\n      \"name\": \"input_path\",\n      \"type\": \"text\",\n      \"value\": \"input\"\n    },\n    {\n      \"display\": \"Output Path\",\n      \"name\": \"output_path\",\n      \"type\": \"text\",\n      \"value\": \"output\"\n    },\n    {\n      \"display\": \"Output Filenames\",\n      \"name\": \"output_filenames\",\n      \"type\": \"text\",\n      \"value\": \"sample.txt\"\n    }\n  ]\n}";
+-            json = "{\n  \"version_of_portlet_description\": 0.2,  \n  \"tabs\": [\"Input Parameters\", \"Output Parameters\", \"D3D Input\"],\n  \"parameters\": [\n    {\n      \"display\": \"Input Onedata Token\",\n      \"name\": \"input_onedata_token\",\n      \"type\": \"text\",\n      \"value\": \"token\",\n      \"tab\": 0\n    },\n    {\n      \"display\": \"Output Onedata Token\",\n      \"name\": \"output_onedata_token\",\n      \"type\": \"text\",\n      \"value\": \"token\",\n      \"tab\": 1\n    },\n    {\n      \"display\": \"Input Onedata Space\",\n      \"name\": \"input_onedata_space\",\n      \"type\": \"text\",\n      \"value\": \"AlgaeBloom\",\n      \"tab\": 0\n    },\n    {\n      \"display\": \"Output Onedata Space\",\n      \"name\": \"output_onedata_space\",\n      \"type\": \"text\",\n      \"value\": \"AlgaeBloom\",\n      \"tab\": 1\n    },\n    {\n      \"display\": \"Input Onedata Providers\",\n      \"name\": \"input_onedata_providers\",\n      \"type\": \"text\",\n      \"value\": \"cdmi-indigo.recas.ba.infn.it\",\n      \"tab\": 0\n    },\n    {\n      \"display\": \"Output Onedata Providers\",\n      \"name\": \"output_onedata_providers\",\n      \"type\": \"text\",\n      \"value\": \"cdmi-indigo.recas.ba.infn.it\",\n      \"tab\": 1\n    },\n    {\n      \"display\": \"Input Path\",\n      \"name\": \"input_path\",\n      \"type\": \"text\",\n      \"value\": \"input\",\n      \"tab\": 0\n    },\n    {\n      \"display\": \"Output Path\",\n      \"name\": \"output_path\",\n      \"type\": \"text\",\n      \"value\": \"output\",\n      \"tab\": 1\n    },\n    {\n      \"display\": \"Input Config File\",\n      \"name\": \"input_config_file\",\n      \"type\": \"text\",\n      \"value\": \"com-tut_fti_waq.inp\",\n      \"tab\": 0\n    },\n    {\n      \"display\": \"Output Filenames\",\n      \"name\": \"output_filenames\",\n      \"type\": \"text\",\n      \"value\": \"output.tgz\",\n      \"tab\": 1\n    },\n    {\n      \"display\": \"D3D Param\",\n      \"name\": \"d3d_param\",\n      \"type\": \"text\",\n      \"value\": \"\",\n      \"tab\": 2\n    },\n    {\n      \"display\": \"D3D Value\",\n      \"name\": \"d3d_value\",\n      \"type\": \"text\",\n      \"value\": \"\",\n      \"tab\": 2\n    }\n  ]\n}";
++            json = "{\n  \"version_of_portlet_description\": 0.2,  \n  \"tabs\": [\"Input Parameters\", \"Output Parameters\", \"D3D Input\"],\n  \"parameters\": [\n    {\n      \"display\": \"Input Onedata Token\",\n      \"name\": \"input_onedata_token\",\n      \"type\": \"text\",\n      \"value\": \"token\",\n      \"tab\": 0\n    },\n    {\n      \"display\": \"Output Onedata Token\",\n      \"name\": \"output_onedata_token\",\n      \"type\": \"text\",\n      \"value\": \"token\",\n      \"tab\": 1\n    },\n    {\n      \"display\": \"Input Onedata Space\",\n      \"name\": \"input_onedata_space\",\n      \"type\": \"text\",\n      \"value\": \"AlgaeBloom\",\n      \"tab\": 0\n    },\n    {\n      \"display\": \"Output Onedata Space\",\n      \"name\": \"output_onedata_space\",\n      \"type\": \"text\",\n      \"value\": \"AlgaeBloom\",\n      \"tab\": 1\n    },\n    {\n      \"display\": \"Input Onedata Providers\",\n      \"name\": \"input_onedata_providers\",\n      \"type\": \"text\",\n      \"value\": \"cdmi-indigo.recas.ba.infn.it\",\n      \"tab\": 0\n    },\n    {\n      \"display\": \"Output Onedata Providers\",\n      \"name\": \"output_onedata_providers\",\n      \"type\": \"text\",\n      \"value\": \"cdmi-indigo.recas.ba.infn.it\",\n      \"tab\": 1\n    },\n    {\n      \"display\": \"Input Path\",\n      \"name\": \"input_path\",\n      \"type\": \"text\",\n      \"value\": \"input\",\n      \"tab\": 0\n    },\n    {\n      \"display\": \"Output Path\",\n      \"name\": \"output_path\",\n      \"type\": \"text\",\n      \"value\": \"output\",\n      \"tab\": 1\n    },\n    {\n      \"display\": \"Input Config File\",\n      \"name\": \"input_config_file\",\n      \"type\": \"text\",\n      \"value\": \"com-tut_fti_waq.inp\",\n      \"tab\": 0\n    },\n    {\n      \"display\": \"Output Filenames\",\n      \"name\": \"output_filenames\",\n      \"type\": \"text\",\n      \"value\": \"output.tgz\",\n      \"tab\": 1\n    },\n    {\n      \"display\": \"D3D Param\",\n      \"name\": \"d3d_param\",\n      \"type\": \"text\",\n      \"value\": \"TcMrtBLU_P\",\n      \"tab\": 2\n    },\n    {\n      \"display\": \"D3D Value\",\n      \"name\": \"d3d_value\",\n      \"type\": \"text\",\n      \"value\": \"0\",\n      \"tab\": 2\n    }\n  ]\n}";
+         }
+         return json;
+     }
+diff --git a/src/main/resources/META-INF/resources/js/fg-api.js b/src/main/resources/META-INF/resources/js/fg-api.js
+index 7f3ac38..bb12c7f 100644
+--- a/src/main/resources/META-INF/resources/js/fg-api.js
++++ b/src/main/resources/META-INF/resources/js/fg-api.js
+@@ -58,7 +58,7 @@
+                     machineIP   = '';
+                 }
+                 */
+-                var OutFiles ='';
++                var OutFiles = '';
+                 if(job_status == 'DONE') {
+                     del_btn='<button id="cln_btn'+job_id+'"'
+                            +'        class="btn btn-xs btn-danger"'

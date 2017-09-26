@@ -1,0 +1,102 @@
+{
+  "version_of_portlet_description": 0.2,
+  "tabs": ["Virtual Hardware", "Galaxy Configuration", "Galaxy Advanced Configuration","Galaxy Tools"],
+  "parameters": [
+    {
+      "display": "Virtual CPUs Number",
+      "name": "number_cpus",
+      "type": "list",
+      "value": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        64
+      ],
+      "tab": 0
+    },
+    {
+      "display": "Memory size (RAM)",
+      "name": "memory_size",
+      "type": "list",
+      "value": [
+        "1 GB",
+        "2 GB",
+        "4 GB",
+        "8 GB",
+        "16 GB",
+        "32 GB"
+      ],
+      "tab": 0
+    },
+    {
+      "display": "Volume storage size",
+      "name": "volume_storage",
+      "type": "list",
+      "value": [
+        "100 GB",
+        "1 TB"
+      ],
+      "tab": 0
+    },
+    {
+      "display": "SSH public key",
+      "name": "instance_key_pub",
+      "type": "text",
+      "value": "Paste here your public key",
+      "tab": 0
+    },
+    {
+      "display": "Galaxy version",
+      "name": "version",
+      "type": "list",
+      "value": [
+        "master"
+      ],
+      "tab": 1
+    },
+    {
+      "display": "Instance description (Galaxy brand)",
+      "name": "instance_description",
+      "type": "text",
+      "value": "ELIXIR-ITA Galaxy test",
+      "tab": 1
+    },
+    {
+      "display": "Galaxy administrator username",
+      "name": "user",
+      "type": "text",
+      "value": "admin username",
+      "tab": 1
+    },
+    {
+      "display": "Galaxy administrator mail address",
+      "name": "admin_email",
+      "type": "text",
+      "value": "admin mail address",
+      "tab": 1
+    },
+    {
+      "display": "Disable anonymous access (force everyone to log in)",
+      "name": "disable_anonymous_access",
+      "type": "list",
+      "value": [
+        "Yes",
+        "No"
+      ],
+      "tab": 2
+    },
+    {
+      "display": "Galaxy flavor",
+      "name": "galaxy_flavour",
+      "type": "list",
+      "value": [
+        "no-tools",
+        "NGS"
+      ],
+      "tab": 3
+    }
+  ]
+}
